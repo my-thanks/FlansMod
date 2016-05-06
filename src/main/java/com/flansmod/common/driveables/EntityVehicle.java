@@ -1,8 +1,12 @@
 package com.flansmod.common.driveables;
 
 import io.netty.buffer.ByteBuf;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ChatComponentText;
@@ -10,7 +14,8 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
-
+import net.minecraft.potion.Potion;
+import net.minecraft.potion.PotionEffect;
 import com.flansmod.api.IExplodeable;
 import com.flansmod.common.FlansMod;
 import com.flansmod.common.network.PacketDriveableKey;
@@ -32,6 +37,10 @@ public class EntityVehicle extends EntityDriveable implements IExplodeable
 	public int soundPosition;
 	/** Front wheel yaw, used to control the vehicle steering */
 	public float wheelsYaw;
+  /** *****Used to control the vehicle in water*/
+	public float verticalMoving;
+  public float verticalScale;
+  public double driveWheelsPosY;
 	/** Despawn time */
 	private int ticksSinceUsed = 0;
 	/** Aesthetic door switch */
@@ -179,18 +188,60 @@ public class EntityVehicle extends EntityDriveable implements IExplodeable
 			}
 			case 4 : //Up : Brake
 			{
-				throttle *= 0.8F;
-				if(onGround)
-				{
-					motionX *= 0.8F;
-					motionZ *= 0.8F;
-				}
+				if(!type.moveInWater)
+			  {
+          throttle *= 0.8F;
+				  if(onGround)
+				  {
+					 motionX *= 0.8F;
+					 motionZ *= 0.8F;
+				  }
+        }
+        
+        // !!! MODIFIED CODE:
+        /** Up: to rise from the depths */
+        if(type.moveInWater)
+			  {
+          verticalScale = (throttle > 0 ? type.maxThrottle : type.maxNegativeThrottle) * getDriveableData().engine.engineSpeed;
+          if ((throttle > 0) && (getDriveableData().engine.engineSpeed > 0.1F))
+          {
+            verticalMoving += (0.001F * verticalScale);
+            if (verticalMoving > (0.1F * verticalScale)) verticalMoving = 0.1F * verticalScale;
+          } 
+          if (throttle <= 0)
+          {
+           verticalMoving += 0.0002F;
+			     if (verticalMoving > 0.005F) verticalMoving = 0.005F;
+          }
+        }
+        /** ------------------- */
+        
 				return true;
 			}
 			case 5 : //Down : Do nothing
 			{
-				return true;
-			}
+				// !!! MODIFIED CODE:
+        
+        /** Down: to dive deeper */
+        
+        if(type.moveInWater)
+			  {
+          verticalScale = (throttle > 0 ? type.maxThrottle : type.maxNegativeThrottle) * getDriveableData().engine.engineSpeed;
+          if ((throttle > 0) && (getDriveableData().engine.engineSpeed > 0.1F))
+          {
+            verticalMoving -= (0.001F * verticalScale);
+            if (verticalMoving < (-0.1F * verticalScale)) verticalMoving = -0.1F * verticalScale;
+          }
+          if (throttle <= 0)
+          {
+           verticalMoving -= 0.0002F;
+			     if (verticalMoving < -0.005F) verticalMoving = -0.005F;          
+          }
+        /** ------------------- */        
+        
+        }
+        return true;
+      }
 			case 6 : //Exit : Get out
 			{
 				seats[0].riddenByEntity.mountEntity(null);
@@ -268,7 +319,10 @@ public class EntityVehicle extends EntityDriveable implements IExplodeable
 		//Get vehicle type
 		VehicleType type = this.getVehicleType();
 		DriveableData data = getDriveableData();
-		if(type == null)
+
+		boolean canThrustCreatively = !TeamsManager.vehiclesNeedFuel || (seats != null && seats[0] != null && seats[0].riddenByEntity instanceof EntityPlayer && ((EntityPlayer)seats[0].riddenByEntity).capabilities.isCreativeMode);
+    
+    if(type == null)
 		{
 			FlansMod.log("Vehicle type null. Not ticking vehicle");
 			return;
@@ -300,9 +354,18 @@ public class EntityVehicle extends EntityDriveable implements IExplodeable
 		//Aesthetics
 		//Rotate the wheels
 		if(hasEnoughFuel())
-		{
-			wheelsAngle += throttle * 0.2F;	
-		}
+		{			      
+    //MODIFIED CODE:
+    /** Submarine's wheels(propellers) rotates faster */
+      if (!(type.moveInWater)) wheelsAngle += throttle * 0.2F;
+       
+      if ((type.moveInWater)){
+        wheelsAngle += (throttle * 2.4F);      
+        if (throttle >= 0) wheelsAngle += Math.abs(verticalMoving * 1.4F);                       	
+		    if (throttle < 0) wheelsAngle -= Math.abs(verticalMoving * 1.4F);
+      }
+   /** --------------- */
+    }
 		
 		//Return the wheels to their resting position
 		wheelsYaw *= 0.9F;
@@ -339,17 +402,18 @@ public class EntityVehicle extends EntityDriveable implements IExplodeable
 		//Movement
 
 		Vector3f amountToMoveCar = new Vector3f();
-		
+     
 		for(EntityWheel wheel : wheels)
 		{
 			if(wheel != null && worldObj != null)
 			{
 				wheel.prevPosX = wheel.posX;
 				wheel.prevPosY = wheel.posY;
-				wheel.prevPosZ = wheel.prevPosZ;
-			}
+				wheel.prevPosZ = wheel.prevPosZ;			   
+      }
 		}
-		
+    
+    
 		for(EntityWheel wheel : wheels)
 		{
 			if(wheel == null)
@@ -376,11 +440,11 @@ public class EntityVehicle extends EntityDriveable implements IExplodeable
 			
 			//Apply velocity
 			//If the player driving this is in creative, then we can thrust, no matter what
-			boolean canThrustCreatively = !TeamsManager.vehiclesNeedFuel || (seats != null && seats[0] != null && seats[0].riddenByEntity instanceof EntityPlayer && ((EntityPlayer)seats[0].riddenByEntity).capabilities.isCreativeMode);
+ 			// boolean canThrustCreatively = !TeamsManager.vehiclesNeedFuel || (seats != null && seats[0] != null && seats[0].riddenByEntity instanceof EntityPlayer && ((EntityPlayer)seats[0].riddenByEntity).capabilities.isCreativeMode);
 			//Otherwise, check the fuel tanks!
 			if(canThrustCreatively || data.fuelInTank > data.engine.fuelConsumption * throttle)
 			{
-				if(getVehicleType().tank)
+        if(getVehicleType().tank)
 				{
 					boolean left = wheel.ID == 0 || wheel.ID == 3;
 					
@@ -425,8 +489,51 @@ public class EntityVehicle extends EntityDriveable implements IExplodeable
 			{
 				wheel.motionY += type.buoyancy;
 			}
-
-			wheel.moveEntity(wheel.motionX, wheel.motionY, wheel.motionZ);
+  
+  // !!! MODIFIED CODE:  
+  /** Water_moving block: Calculating movement in water */ 
+        if(type.moveInWater)
+        {             			              
+							if (worldObj.isAnyLiquid(wheel.getEntityBoundingBox()))
+			        {
+                wheel.motionY += 0.98F / 20F;
+                if(wheel.ID == 2 || wheel.ID == 3)
+                {
+                  driveWheelsPosY = wheel.prevPosY;                   									
+									if (canThrustCreatively || (data.fuelInTank > 0F))
+                  {                   			          
+									 if ((throttle > 0) && (getDriveableData().engine.engineSpeed > 0.1F)) wheel.motionY += verticalMoving + (0.3 * (verticalMoving * verticalScale) ) ;
+                   if (throttle <= 0) wheel.motionY += verticalMoving;                    
+                  }
+                }
+                else
+      					{								     		                                        
+								  if (canThrustCreatively || (data.fuelInTank > 0F))
+                  {
+                   									
+                    if (verticalMoving == 0)
+                    {
+                      if (driveWheelsPosY > wheel.prevPosY) wheel.motionY += 0.001F;
+                      if (driveWheelsPosY < wheel.prevPosY) wheel.motionY -= 0.001F;                    
+                    }
+                      wheel.motionY += verticalMoving;
+                  }				                            
+                }
+			        }                    
+              if (!worldObj.isAnyLiquid(wheel.getEntityBoundingBox()))
+			        {
+                wheel.motionX = 0F;                
+				        wheel.motionZ = 0F;
+			        }             
+			 if (this.isInWater() && !(canThrustCreatively)) 
+       {         
+         if (data.fuelInTank > 0F) data.fuelInTank -= (0.001F + verticalMoving) * data.engine.fuelConsumption;         
+         else wheel.motionY -= 0.98F / 200F;                                           	    							      
+       }
+      }
+      /** End of Water_moving block */
+      
+      wheel.moveEntity(wheel.motionX, wheel.motionY, wheel.motionZ);
 			
 			//Pull wheels towards car
 			Vector3f targetWheelPos = axes.findLocalVectorGlobally(getVehicleType().wheelPositions[wheel.ID].position);
@@ -440,10 +547,12 @@ public class EntityVehicle extends EntityDriveable implements IExplodeable
 				dPos.scale(0.5F);
 				Vector3f.sub(amountToMoveCar, dPos, amountToMoveCar);
 			}
-		}
-		
-		moveEntity(amountToMoveCar.x, amountToMoveCar.y, amountToMoveCar.z);
-		
+		}		
+    
+    moveEntity(amountToMoveCar.x, amountToMoveCar.y, amountToMoveCar.z);
+		 
+    verticalMoving *= 0.65F; // For submarine
+    
 		if(wheels[0] != null && wheels[1] != null && wheels[2] != null && wheels[3] != null)
 		{
 			Vector3f frontAxleCentre = new Vector3f((wheels[2].posX + wheels[3].posX) / 2F, (wheels[2].posY + wheels[3].posY) / 2F, (wheels[2].posZ + wheels[3].posZ) / 2F); 
@@ -491,12 +600,33 @@ public class EntityVehicle extends EntityDriveable implements IExplodeable
 		{
 			PacketPlaySound.sendSoundPacket(posX, posY, posZ, 50, dimension, type.engineSound, false);
 			soundPosition = type.engineSoundLength;
-		}
+		}			
 		
-		for(EntitySeat seat : seats)
-		{
+    for(EntitySeat seat : seats)	
+  	{
 			if(seat != null)
 				seat.updatePosition();
+		
+    // !!! MODIFIED CODE:    
+    /** Underwater_effects block: Applying effects to driver & passengers */        
+        if(type.moveInWater)
+        {
+    // boolean canThrustCreatively = !TeamsManager.vehiclesNeedFuel || (seats != null && seats[0] != null && seats[0].riddenByEntity instanceof EntityPlayer && ((EntityPlayer)seats[0].riddenByEntity).capabilities.isCreativeMode);
+            if((seat == null) || (seat.riddenByEntity == null)) continue;
+            EntityLivingBase passenger = (EntityLivingBase)seat.riddenByEntity;
+							if ((this.isInWater()) || passenger.isInWater())
+							{
+							if (!canThrustCreatively) data.fuelInTank -= 0.001F;						
+								if ((canThrustCreatively) || (data.fuelInTank > 0F))
+                {
+                  passenger.addPotionEffect(new PotionEffect(Potion.nightVision.id, 25)); //(EntityPlayer)
+								  passenger.addPotionEffect(new PotionEffect(Potion.waterBreathing.id, 25));								
+							    passenger.setAir(300);
+                }
+              }         
+           
+        }
+    /** End of Underwater_effects block */
 		}
 		
 		//Calculate movement on the client and then send position, rotation etc to the server

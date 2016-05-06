@@ -121,7 +121,10 @@ public abstract class DriveableType extends PaintableType
 	//Boat Stuff
 	/** If true, then the vehicles wheels float on water */
 	public boolean floatOnWater = false;
-	/** Defines where you can place this vehicle */
+  //MODIFIED:
+  /** If true, then the vehicle can move in(under) water(submarine) */
+	public boolean moveInWater = false;
+  	/** Defines where you can place this vehicle */
 	public boolean placeableOnLand = true, placeableOnWater = false;
 	/** The upwards force to apply to the vehicle per wheel when on water */
 	public float buoyancy = 0.0165F;
@@ -232,6 +235,8 @@ public abstract class DriveableType extends PaintableType
 				placeableOnWater = Boolean.parseBoolean(split[1]);
 			else if(split[0].equals("FloatOnWater"))
 				floatOnWater = Boolean.parseBoolean(split[1]);
+      else if(split[0].equals("MoveInWater"))
+				moveInWater = Boolean.parseBoolean(split[1]);
 			else if(split[0].equals("Boat"))
 			{
 				placeableOnLand = false;
