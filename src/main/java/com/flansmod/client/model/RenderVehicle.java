@@ -41,7 +41,7 @@ import com.flansmod.common.guns.Paintjob;
 public class RenderVehicle extends Render implements IItemRenderer
 {
 	
-	private Minecraft mc;
+  private Minecraft mc;
   public EntitySeat seatP;              
   public EntityVehicle driveP;
 	
