@@ -72,14 +72,25 @@ public class ModelVehicle extends ModelDriveable
 		for(ModelRendererTurbo[] ratm : rightAnimTrackModel)
 			renderPart(ratm);
 		renderPart(steeringWheelModel);
-	}
-	
+	  /*
+    for(ModelRendererTurbo[] prop : propellerModels)
+		{
+			for(int j = 0; j < prop.length; j++)
+			{
+				prop[j].rotateAngleX = (j * 2F * 3.1415926535F) / (prop.length);
+				prop[j].render(0.0625F);
+			}
+		}
+    */
+  }
+	  
+  
 	public void render(float f5, EntityVehicle vehicle, float f)
 	{
 		boolean rotateWheels = vehicle.getVehicleType().rotateWheels;
 		animFrame = vehicle.animFrame;
-
-		//Rendering the body
+    
+    //Rendering the body
 		if(vehicle.isPartIntact(EnumDriveablePart.core))
 		{
 			for (ModelRendererTurbo aBodyModel : bodyModel) {
@@ -100,51 +111,82 @@ public class ModelVehicle extends ModelDriveable
 		}
 		
 		//Wheels
-		if(vehicle.isPartIntact(EnumDriveablePart.backLeftWheel))
+		
+    //MODIFIED CODE:    
+    /** If vehicle is submarine type - rotating wheels like propellers */
+    if(vehicle.isPartIntact(EnumDriveablePart.backLeftWheel))
 		{
 			for (ModelRendererTurbo aLeftBackWheelModel : leftBackWheelModel) {
-				aLeftBackWheelModel.rotateAngleZ = rotateWheels ? -vehicle.wheelsAngle : 0;
-				aLeftBackWheelModel.render(f5, oldRotateOrder);
+		
+        if (!(vehicle.getVehicleType().moveInWater)) aLeftBackWheelModel.rotateAngleZ = rotateWheels ? -vehicle.wheelsAngle : 0;
+				if ((vehicle.getVehicleType().moveInWater)) aLeftBackWheelModel.rotateAngleX = rotateWheels ? -vehicle.wheelsAngle : 0;
+        aLeftBackWheelModel.render(f5, oldRotateOrder);
 			}
 		}
 		if(vehicle.isPartIntact(EnumDriveablePart.backRightWheel))
 		{
 			for (ModelRendererTurbo aRightBackWheelModel : rightBackWheelModel) {
-				aRightBackWheelModel.rotateAngleZ = rotateWheels ? -vehicle.wheelsAngle : 0;
-				aRightBackWheelModel.render(f5, oldRotateOrder);
+				if (!(vehicle.getVehicleType().moveInWater)) aRightBackWheelModel.rotateAngleZ = rotateWheels ? -vehicle.wheelsAngle : 0;
+				if ((vehicle.getVehicleType().moveInWater)) aRightBackWheelModel.rotateAngleX = rotateWheels ? -vehicle.wheelsAngle : 0;
+        aRightBackWheelModel.render(f5, oldRotateOrder);
 			}
 		}
 		if(vehicle.isPartIntact(EnumDriveablePart.frontLeftWheel))
 		{
 			for (ModelRendererTurbo aLeftFrontWheelModel : leftFrontWheelModel) {
-				aLeftFrontWheelModel.rotateAngleZ = rotateWheels ? -vehicle.wheelsAngle : 0;
-				aLeftFrontWheelModel.rotateAngleY = -vehicle.wheelsYaw * 3.14159265F / 180F * 3F;
+				if (!(vehicle.getVehicleType().moveInWater)) aLeftFrontWheelModel.rotateAngleZ = rotateWheels ? -vehicle.wheelsAngle : 0;
+				if ((vehicle.getVehicleType().moveInWater)) aLeftFrontWheelModel.rotateAngleX = rotateWheels ? -vehicle.wheelsAngle : 0;
+        aLeftFrontWheelModel.rotateAngleY = -vehicle.wheelsYaw * 3.14159265F / 180F * 3F;
 				aLeftFrontWheelModel.render(f5, oldRotateOrder);
 			}
 		}
 		if(vehicle.isPartIntact(EnumDriveablePart.frontRightWheel))
 		{
 			for (ModelRendererTurbo aRightFrontWheelModel : rightFrontWheelModel) {
-				aRightFrontWheelModel.rotateAngleZ = rotateWheels ? -vehicle.wheelsAngle : 0;
-				aRightFrontWheelModel.rotateAngleY = -vehicle.wheelsYaw * 3.14159265F / 180F * 3F;
+				if (!(vehicle.getVehicleType().moveInWater)) aRightFrontWheelModel.rotateAngleZ = rotateWheels ? -vehicle.wheelsAngle : 0;
+				if ((vehicle.getVehicleType().moveInWater)) aRightFrontWheelModel.rotateAngleX = rotateWheels ? -vehicle.wheelsAngle : 0;
+        aRightFrontWheelModel.rotateAngleY = -vehicle.wheelsYaw * 3.14159265F / 180F * 3F;
 				aRightFrontWheelModel.render(f5, oldRotateOrder);
 			}
 		}
 		if(vehicle.isPartIntact(EnumDriveablePart.frontWheel))
 		{
 			for (ModelRendererTurbo aFrontWheelModel : frontWheelModel) {
-				aFrontWheelModel.rotateAngleZ = rotateWheels ? -vehicle.wheelsAngle : 0;
-				aFrontWheelModel.rotateAngleY = -vehicle.wheelsYaw * 3.14159265F / 180F * 3F;
+				if (!(vehicle.getVehicleType().moveInWater)) aFrontWheelModel.rotateAngleZ = rotateWheels ? -vehicle.wheelsAngle : 0;
+				if ((vehicle.getVehicleType().moveInWater)) aFrontWheelModel.rotateAngleX = rotateWheels ? -vehicle.wheelsAngle : 0;
+        aFrontWheelModel.rotateAngleY = -vehicle.wheelsYaw * 3.14159265F / 180F * 3F;
 				aFrontWheelModel.render(f5, oldRotateOrder);
 			}
 		}
 		if(vehicle.isPartIntact(EnumDriveablePart.backWheel))
 		{
 			for (ModelRendererTurbo aBackWheelModel : backWheelModel) {
-				aBackWheelModel.rotateAngleZ = rotateWheels ? -vehicle.wheelsAngle : 0;
+				if (!(vehicle.getVehicleType().moveInWater)) aBackWheelModel.rotateAngleZ = rotateWheels ? -vehicle.wheelsAngle : 0;
+        if ((vehicle.getVehicleType().moveInWater)) aBackWheelModel.rotateAngleX = rotateWheels ? -vehicle.wheelsAngle : 0;
 				aBackWheelModel.render(f5, oldRotateOrder);
 			}
 		}
+    /** --------------------- */
+    
+    /*
+     // ***
+    // VehicleType type = vehicle.getVehicleType();
+		//Rotating the propeller
+		float angle = vehicle.propAngle;
+		for(Propeller propeller : vehicle.getVehicleType().propellers)
+		{
+			if(vehicle.isPartIntact(vehicle.vehiclePart) && propellerModels.length > propeller.ID)
+			{
+				int numParts = propellerModels[propeller.ID].length;
+				for(int j = 0; j < numParts; j++)
+				{
+					propellerModels[propeller.ID][j].rotateAngleX = angle + (j * 2F * 3.1415926535F) / (numParts);
+					propellerModels[propeller.ID][j].render(f5);
+				}
+			}
+		}
+
+    */
 
 		if(vehicle.isPartIntact(EnumDriveablePart.leftTrack))
 		{
@@ -167,7 +209,7 @@ public class ModelVehicle extends ModelDriveable
 			}
 
 		}
-
+   
 		if(vehicle.isPartIntact(EnumDriveablePart.rightTrack))
 		{
 			for (ModelRendererTurbo aRightTrackModel : rightTrackModel) {
