@@ -43,7 +43,7 @@ public class RenderVehicle extends Render implements IItemRenderer
 	
 	private Minecraft mc;
   public EntitySeat seatP;              
-         EntityVehicle driveP;
+  public EntityVehicle driveP;
 	
 	public RenderVehicle(RenderManager renderManager) 
 	{
