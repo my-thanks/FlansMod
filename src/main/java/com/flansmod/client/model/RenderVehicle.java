@@ -41,9 +41,11 @@ import com.flansmod.common.guns.Paintjob;
 public class RenderVehicle extends Render implements IItemRenderer
 {
 	
-  private Minecraft mc;
+	private Minecraft mc;
   public EntitySeat seatP;              
   public EntityVehicle driveP;
+  public EntitySeat seatT;              
+  public EntityVehicle driveT;
 	
 	public RenderVehicle(RenderManager renderManager) 
 	{
@@ -263,13 +265,17 @@ public class RenderVehicle extends Render implements IItemRenderer
 		//Get the camera frustrum for clipping
         Entity camera = Minecraft.getMinecraft().getRenderViewEntity();
     //Get client side player
-        EntityPlayer entityplayer = (EntityPlayer)mc.getRenderViewEntity();
-        if (entityplayer.ridingEntity instanceof EntitySeat)
-        {
-          seatP = (EntitySeat)entityplayer.ridingEntity;              
-          driveP = (EntityVehicle)seatP.driveable;
+        EntityPlayer entityplayer = (EntityPlayer)mc.thePlayer; // minecraft.thePlayer;
+        if (entityplayer.ridingEntity instanceof EntitySeat) seatP = (EntitySeat)entityplayer.ridingEntity;                        
+        if  (seatP != null)
+        { 
+          if ((seatP.driveable != null) && (seatP.driveable instanceof EntityVehicle))
+          {
+            driveP = (EntityVehicle)seatP.driveable;
+          }
+          else driveP = null;
         }
-        else driveP = null; 
+        else driveP = null;         
 
         double x = camera.lastTickPosX + (camera.posX - camera.lastTickPosX) * event.partialTicks;
         double y = camera.lastTickPosY + (camera.posY - camera.lastTickPosY) * event.partialTicks;
@@ -302,35 +308,41 @@ public class RenderVehicle extends Render implements IItemRenderer
         EntityLivingBase living = (EntityLivingBase)entity;
                                                   
         if (living.ridingEntity instanceof EntitySeat)
-        { 
-          EntitySeat seatT = (EntitySeat)living.ridingEntity;                      
-          EntityVehicle driveT = (EntityVehicle)seatT.driveable;
-          double lx = seatT.prevPosX + (seatT.posX - seatT.prevPosX) * event.partialTicks;
-          double ly = seatT.prevPosY + (seatT.posY - seatT.prevPosY) * event.partialTicks;
-          double lz = seatT.prevPosZ + (seatT.posZ - seatT.prevPosZ) * event.partialTicks;
-          double dx = x - lx;
-          double dy = y - ly;
-          double dz = z - lz;
-          double dxyz = (float)Math.sqrt(dx * dx + dy * dy + dz * dz);                 
-          boolean seatInfo = driveT.getDriveableType().moveInWater;          
-
-          if (seatInfo && (driveT.isInWater() || living.isInWater()))
-          {
-            if (((entityplayer.isInWater()) && ((dxyz > 8) || (dy > 4))) || (!(entityplayer.isInWater()) && ((dxyz > 4) || (dy > 2))))
-            {                                                   
-              if (driveP != driveT)
-              {
-						    ir = 0.1F;
-							  ig = 0.1F;
-							  ib = 0.6F;               
-                GlStateManager.color(ir, ig, ib, 0.1F);
-  					    doRender(living, living.prevPosX + (living.posX - living.prevPosX) * event.partialTicks, living.prevPosY + (living.posY - living.prevPosY) * event.partialTicks, living.prevPosZ + (living.posZ - living.prevPosZ) * event.partialTicks, 0F, event.partialTicks);                                                       
+        {
+          seatT = (EntitySeat)living.ridingEntity;                                
+            if ((seatT.driveable != null) && (seatT.driveable instanceof EntityVehicle))
+            {
+              driveT = (EntityVehicle)seatT.driveable;        
+              if (driveT.getVehicleType().moveInWater)
+              {  
+                boolean seatInfo = driveT.getDriveableType().moveInWater;
+                double lx = seatT.prevPosX + (seatT.posX - seatT.prevPosX) * event.partialTicks;
+                double ly = seatT.prevPosY + (seatT.posY - seatT.prevPosY) * event.partialTicks;
+                double lz = seatT.prevPosZ + (seatT.posZ - seatT.prevPosZ) * event.partialTicks;
+                double dx = x - lx;
+                double dy = y - ly;
+                double dz = z - lz;
+                double dxyz = (float)Math.sqrt(dx * dx + dy * dy + dz * dz);                 
+                              
+                if (driveT.isInWater() || living.isInWater())
+                {
+                  if (((entityplayer.isInWater()) && ((dxyz > 8) || (dy > 4))) || (!(entityplayer.isInWater()) && ((dxyz > 4) || (dy > 2))))
+                  {                                                   
+                    if (driveP != driveT)
+                    {
+						          ir = 0.1F;
+							       ig = 0.1F;
+							       ib = 0.6F;               
+                      GlStateManager.color(ir, ig, ib, 0.1F);
+  					         doRender(living, living.prevPosX + (living.posX - living.prevPosX) * event.partialTicks, living.prevPosY + (living.posY - living.prevPosY) * event.partialTicks, living.prevPosZ + (living.posZ - living.prevPosZ) * event.partialTicks, 0F, event.partialTicks);                                                       
+                    }                                                
+                  }              
+                }
               }                                                
-            }              
-          }                                    
-        }             
-      }           
-            
+            }                                 
+        }
+      }      
+                   
       /** ---------------------------------- */       
 			if(entity instanceof EntityVehicle)
 			{
@@ -371,7 +383,7 @@ public class RenderVehicle extends Render implements IItemRenderer
 								ib = 0.6F;
                 it = 0.5F; 
 						  }    																							                                                 
-   						if (((dxyz < 16) && (dy < 8) && !(entityplayer.isInWater())) || ((dxyz < 24) && (dy < 16) && (entityplayer.isInWater())) || ((EntityVehicle)entityplayer.ridingEntity == vehicle))
+   						if (((dxyz < 16) && (dy < 8) && !(entityplayer.isInWater())) || ((dxyz < 24) && (dy < 16) && (entityplayer.isInWater())) || (driveP == vehicle))
               {               
                 OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, (float)j / 1.0F, (float)k / 1.0F);
 		            GlStateManager.color(ir, ig, ib, it);
