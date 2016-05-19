@@ -9,13 +9,10 @@ import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 import net.minecraftforge.client.IItemRenderer;
 import net.minecraftforge.client.IItemRenderer.ItemRenderType;
@@ -32,7 +29,6 @@ import com.flansmod.common.driveables.DriveableType;
 import com.flansmod.common.driveables.EntityDriveable;
 import com.flansmod.common.driveables.EntityPlane;
 import com.flansmod.common.driveables.EntityVehicle;
-import com.flansmod.common.driveables.EntitySeat;
 import com.flansmod.common.driveables.EnumDriveablePart;
 import com.flansmod.common.driveables.ItemVehicle;
 import com.flansmod.common.driveables.VehicleType;
@@ -40,13 +36,6 @@ import com.flansmod.common.guns.Paintjob;
 
 public class RenderVehicle extends Render implements IItemRenderer
 {
-	
-	private Minecraft mc;
-  public EntitySeat seatP;              
-  public EntityVehicle driveP;
-  public EntitySeat seatT;              
-  public EntityVehicle driveT;
-	
 	public RenderVehicle(RenderManager renderManager) 
 	{
 		super(renderManager);
@@ -170,11 +159,11 @@ public class RenderVehicle extends Render implements IItemRenderer
 		GL11.glPopMatrix();
 	}
 
-	//@Override
-	//public void doRender(Entity entity, double d, double d1, double d2, float f, float f1)
-	//{
+	@Override
+	public void doRender(Entity entity, double d, double d1, double d2, float f, float f1)
+	{
 		//render((EntityVehicle)entity, d, d1, d2, f, f1);
-	//}
+	}
 
 	@Override
 	protected ResourceLocation getEntityTexture(Entity entity) 
@@ -258,29 +247,15 @@ public class RenderVehicle extends Render implements IItemRenderer
 	{
 		//Get the world
 		World world = Minecraft.getMinecraft().theWorld;
-		mc = Minecraft.getMinecraft();    		
-    if(world == null)
+		if(world == null)
 			return;
 
 		//Get the camera frustrum for clipping
         Entity camera = Minecraft.getMinecraft().getRenderViewEntity();
-    //Get client side player
-        EntityPlayer entityplayer = (EntityPlayer)mc.thePlayer; // minecraft.thePlayer;
-        if (entityplayer.ridingEntity instanceof EntitySeat) seatP = (EntitySeat)entityplayer.ridingEntity;                        
-        if  (seatP != null)
-        { 
-          if ((seatP.driveable != null) && (seatP.driveable instanceof EntityVehicle))
-          {
-            driveP = (EntityVehicle)seatP.driveable;
-          }
-          else driveP = null;
-        }
-        else driveP = null;         
-
         double x = camera.lastTickPosX + (camera.posX - camera.lastTickPosX) * event.partialTicks;
         double y = camera.lastTickPosY + (camera.posY - camera.lastTickPosY) * event.partialTicks;
         double z = camera.lastTickPosZ + (camera.posZ - camera.lastTickPosZ) * event.partialTicks;
-                
+        
         //Frustum frustrum = new Frustum();
         //frustrum.setPosition(x, y, z);
         
@@ -290,129 +265,35 @@ public class RenderVehicle extends Render implements IItemRenderer
         Minecraft.getMinecraft().entityRenderer.enableLightmap();
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
         GL11.glEnable(GL11.GL_LIGHTING);
+        GL11.glDisable(GL11.GL_BLEND);
         
         RenderHelper.enableStandardItemLighting();
         
         GL11.glTranslatef(-(float)x, -(float)y, -(float)z);
 		for(Object entity : world.loadedEntityList)
 		{
-				float ir = 1.0F;
-        float ig = 1.0F;
-        float ib = 1.0F;
-				float it = 1.0F;
-                
- 			//Modified code:
-      /** Change rendering for passengers of submarine */
-      if(entity instanceof EntityLivingBase)
-      {
-        EntityLivingBase living = (EntityLivingBase)entity;
-                                                  
-        if (living.ridingEntity instanceof EntitySeat)
-        {
-          seatT = (EntitySeat)living.ridingEntity;                                
-            if ((seatT.driveable != null) && (seatT.driveable instanceof EntityVehicle))
-            {
-              driveT = (EntityVehicle)seatT.driveable;        
-              if (driveT.getVehicleType().moveInWater)
-              {  
-                boolean seatInfo = driveT.getDriveableType().moveInWater;
-                double lx = seatT.prevPosX + (seatT.posX - seatT.prevPosX) * event.partialTicks;
-                double ly = seatT.prevPosY + (seatT.posY - seatT.prevPosY) * event.partialTicks;
-                double lz = seatT.prevPosZ + (seatT.posZ - seatT.prevPosZ) * event.partialTicks;
-                double dx = x - lx;
-                double dy = y - ly;
-                double dz = z - lz;
-                double dxyz = (float)Math.sqrt(dx * dx + dy * dy + dz * dz);                 
-                              
-                if (driveT.isInWater() || living.isInWater())
-                {
-                  if (((entityplayer.isInWater()) && ((dxyz > 8) || (dy > 4))) || (!(entityplayer.isInWater()) && ((dxyz > 4) || (dy > 2))))
-                  {                                                   
-                    if (driveP != driveT)
-                    {
-						          ir = 0.1F;
-							       ig = 0.1F;
-							       ib = 0.6F;               
-                      GlStateManager.color(ir, ig, ib, 0.1F);
-  					         doRender(living, living.prevPosX + (living.posX - living.prevPosX) * event.partialTicks, living.prevPosY + (living.posY - living.prevPosY) * event.partialTicks, living.prevPosZ + (living.posZ - living.prevPosZ) * event.partialTicks, 0F, event.partialTicks);                                                       
-                    }                                                
-                  }              
-                }
-              }                                                
-            }                                 
-        }
-      }      
-                   
-      /** ---------------------------------- */       
 			if(entity instanceof EntityVehicle)
 			{
 				EntityVehicle vehicle = (EntityVehicle)entity;
-				        
-        double vx = vehicle.prevPosX + (vehicle.posX - vehicle.prevPosX) * event.partialTicks;
-        double vy = vehicle.prevPosY + (vehicle.posY - vehicle.prevPosY) * event.partialTicks;
-        double vz = vehicle.prevPosZ + (vehicle.posZ - vehicle.prevPosZ) * event.partialTicks;
-        double dx = x - vx;
-        double dy = y - vy;
-        double dz = z - vz;
-        double dxyz = (float)Math.sqrt(dx * dx + dy * dy + dz * dz);
+		        int i = vehicle.getBrightnessForRender(event.partialTicks);
 
-		        int i = vehicle.getBrightnessForRender(event.partialTicks);                                          
-            // float l = 1.0F;
-            if (vehicle.isBurning())
+		        if (vehicle.isBurning())
 		        {
 		            i = 15728880;
 		        }
 
-            int j = i % 65536;		          
-            int k = i / 65536;
-
-						//Modified code:
-            /** Change rendering for submarine */
-
-            if (vehicle.getVehicleType().moveInWater)
-            {
-             if (vehicle.isInWater())             
-		         {		                                                                                        
-              if (driveP != vehicle)
-              {
-							  if (((entityplayer.isInWater()) && ((dxyz > 8) || (dy > 4))) || (!(entityplayer.isInWater()) && ((dxyz > 4) || (dy > 2))))
-                GL11.glEnable(GL11.GL_BLEND);
-								GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);                       
-								ir = 0.1F;
-								ig = 0.1F;
-								ib = 0.6F;
-                it = 0.5F; 
-						  }    																							                                                 
-   						if (((dxyz < 16) && (dy < 8) && !(entityplayer.isInWater())) || ((dxyz < 24) && (dy < 16) && (entityplayer.isInWater())) || (driveP == vehicle))
-              {               
-                OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, (float)j / 1.0F, (float)k / 1.0F);
-		            GlStateManager.color(ir, ig, ib, it);
-                render(vehicle, vehicle.prevPosX + (vehicle.posX - vehicle.prevPosX) * event.partialTicks, vehicle.prevPosY + (vehicle.posY - vehicle.prevPosY) * event.partialTicks, vehicle.prevPosZ + (vehicle.posZ - vehicle.prevPosZ) * event.partialTicks, 0F, event.partialTicks);
-              }
-             }             
-             else
-             {            
-              OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, (float)j / 1.0F, (float)k / 1.0F);
-		          GlStateManager.color(ir, ig, ib, it);
-              render(vehicle, vehicle.prevPosX + (vehicle.posX - vehicle.prevPosX) * event.partialTicks, vehicle.prevPosY + (vehicle.posY - vehicle.prevPosY) * event.partialTicks, vehicle.prevPosZ + (vehicle.posZ - vehicle.prevPosZ) * event.partialTicks, 0F, event.partialTicks);
-             }
-            }
-            else
-            {
-            OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, (float)j / 1.0F, (float)k / 1.0F);
-		        GlStateManager.color(ir, ig, ib, it);
-            render(vehicle, vehicle.prevPosX + (vehicle.posX - vehicle.prevPosX) * event.partialTicks, vehicle.prevPosY + (vehicle.posY - vehicle.prevPosY) * event.partialTicks, vehicle.prevPosZ + (vehicle.posZ - vehicle.prevPosZ) * event.partialTicks, 0F, event.partialTicks);            
-            }		        													      
-            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glDisable(GL11.GL_BLEND);
-            /** ---------------------------------- */
-      }
+		        int j = i % 65536;
+		        int k = i / 65536;
+		        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, (float)j / 1.0F, (float)k / 1.0F);
+		        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+		        render(vehicle, vehicle.prevPosX + (vehicle.posX - vehicle.prevPosX) * event.partialTicks, vehicle.prevPosY + (vehicle.posY - vehicle.prevPosY) * event.partialTicks, vehicle.prevPosZ + (vehicle.posZ - vehicle.prevPosZ) * event.partialTicks, 0F, event.partialTicks);
+			}
 		}
 		
 		//Reset Lighting
 		Minecraft.getMinecraft().entityRenderer.disableLightmap();
-		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);		
-    GL11.glDisable(GL11.GL_LIGHTING);   
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+		GL11.glDisable(GL11.GL_LIGHTING);
 		//Pop
 		GL11.glPopMatrix();
 	}
